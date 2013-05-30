@@ -74,7 +74,7 @@ class Config(piupartslib.conf.Config):
         self.section = section
         piupartslib.conf.Config.__init__(self, section,
             {
-                "sections": "slave",
+                "sections": "sid",
                 "idle-sleep": 300,
                 "max-tgz-age": 2592000,
                 "min-tgz-retry-delay": 21600,
