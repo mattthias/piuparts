@@ -73,6 +73,7 @@ class Config(piupartslib.conf.Config):
                 "arch": None,
                 "upgrade-test-distros": None,
                 "depends-sections": None,
+                "sections": "sid",
             },
             defaults_section=defaults_section)
 
@@ -124,7 +125,7 @@ class Protocol:
 
 class Master(Protocol):
 
-    def __init__(self, input, output):
+    def __init__(self, input, output, silent=False):
         Protocol.__init__(self, input, output)
         self._commands = {
             "section": self._switch_section,
@@ -139,7 +140,9 @@ class Master(Protocol):
         }
         self._section = None
         self._lock = None
-        self._writeline("hello")
+        self._silent = silent
+        if not self._silent:
+            self._writeline("hello")
 
     def _init_section(self, section):
         if self._lock:
@@ -266,6 +269,12 @@ class Master(Protocol):
                     raise CommandSyntaxError("Unknown command %s" % command)
         return False
 
+    def get_stati(self, sections):
+       for section in sections:
+           self._switch_section("section", [ section ])
+           print "Status for "+section+": ",
+           self._status("status", '')
+
     def _check_args(self, count, command, args):
         if len(args) != count:
             raise CommandSyntaxError("Need exactly %d args: %s %s" %
@@ -278,7 +287,8 @@ class Master(Protocol):
     def _switch_section(self, command, args):
         self._check_args(1, command, args)
         if self._init_section(args[0]):
-            self._short_response("ok")
+            if not self._silent:
+                self._short_response("ok")
         elif self._lock is None:
             # unknown section
             self._short_response("error")
@@ -310,7 +320,10 @@ class Master(Protocol):
             total += count
             stats += "%s=%d " % (state, count)
         stats += "total=%d" % total
-        self._short_response("ok", stats)
+        if not self._silent:
+             self._short_response("ok", stats)
+        else:
+            self._short_response(stats)
 
     def _reserve(self, command, args):
         self._check_args(0, command, args)
@@ -368,15 +381,23 @@ def main():
     if global_config["proxy"]:
         os.environ["http_proxy"] = global_config["proxy"]
     master_directory = global_config["master-directory"]
+    all_sections = global_config["sections"]
 
     if not os.path.exists(master_directory):
         os.makedirs(master_directory)
 
     os.chdir(master_directory)
 
-    m = Master(sys.stdin, sys.stdout)
-    while m.do_transaction():
-        pass
+    if len(sys.argv) > 1:
+        sections = sys.argv[1:]
+        if sections[0] == "all":
+            sections=all_sections.split()
+        m = Master(os.devnull, sys.stdout, silent=True)
+        m.get_stati(sections)
+    else:
+        m = Master(sys.stdin, sys.stdout)
+        while m.do_transaction():
+            pass
 
     logging.debug("disconnected")
 
