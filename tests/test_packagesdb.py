@@ -11,6 +11,10 @@ Description: test data to imitate a Packages file\n\
  .\
  Just more yadda\n'
 
+example_header = ['Package: horrorfilm\n',
+                  'Version: 1.2.3-2\n',
+                  'Depends: full-moon, dark-night, howling-wolf\n']
+
 
 class PackagesdbTest(unittest.TestCase):
 
@@ -32,3 +36,25 @@ class PackagesdbTest(unittest.TestCase):
         self.assertIn('Version: 4.7.11-1\n', header)
         self.assertIn('Maintainer: Unsung Hero <u.hero@example.com>\n', header)
         self.assertEqual(len(header), 4)
+
+
+class PackageTest(unittest.TestCase):
+
+    def setUp(self):
+        self.package = packagesdb.Package(example_header)
+
+    def test_Package_dependencies(self):
+        '''
+        Test if dependencies are returned as list
+        '''
+        deps = self.package.dependencies()
+        self.assertIn('dark-night', deps)
+        self.assertEqual(len(deps), 3)
+
+    def test_Package_all_dependencies(self):
+        '''
+        Test if dependencies are returned as list of lists
+        '''
+        deps = self.package.all_dependencies()
+        self.assertIn(['dark-night'], deps)
+        self.assertEqual(len(deps), 3)
